@@ -1,5 +1,5 @@
 import {
-  Calendar,
+  FileUp,
   Home,
   ChartNoAxesColumn,
   Search,
@@ -34,9 +34,9 @@ const items = [
     icon: ChartNoAxesColumn,
   },
   {
-    title: "Calendar",
-    url: "#",
-    icon: Calendar,
+    title: "Upload Expenses",
+    url: "/dashboard/upload",
+    icon: FileUp,
   },
   {
     title: "Search",
