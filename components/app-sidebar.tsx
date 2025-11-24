@@ -59,17 +59,23 @@ export async function AppSidebar() {
   }
   console.log(data.claims);
   return (
-    <Sidebar>
+    <Sidebar className="bg-blue-500 text-white">
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Application</SidebarGroupLabel>
+          <SidebarGroupLabel className="px-3 pt-4 pb-6 text-md uppercase tracking-wide">
+            Overview
+          </SidebarGroupLabel>
+
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                    <a href={item.url}>
-                      <item.icon />
+                    <a
+                      href={item.url}
+                      className="flex items-center gap-3 py-2 px-3 rounded-md text-sm font-medium tracking-wide text-white hover:bg-white/10 active:bg-white/20 transition-colors duration-200"
+                    >
+                      <item.icon className="w-5 h-5" />
                       <span>{item.title}</span>
                     </a>
                   </SidebarMenuButton>

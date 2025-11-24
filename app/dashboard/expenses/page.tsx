@@ -4,7 +4,7 @@ import React from "react";
 const ExpensesPage = () => {
   return (
     <div className="w-full h-screen flex justify-center items-center">
-      <Expenses />;
+      <Expenses />
     </div>
   );
 };
