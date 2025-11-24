@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 
 import { LogoutButton } from "@/components/logout-button";
 import { createClient } from "@/lib/server";
+import { SectionCards } from "@/components/section-cards";
 
 export default async function ProtectedPage() {
   const supabase = await createClient();
@@ -12,11 +13,8 @@ export default async function ProtectedPage() {
   }
 
   return (
-    <div className="w-full h-lvh flex justify-start items-center">
-      <p>
-        Hello <span>{data.claims.email}</span>
-      </p>
-      <LogoutButton />
+    <div className="w-full h-lvh flex justify-center items-center">
+      <SectionCards />
     </div>
   );
 }

@@ -1,4 +1,10 @@
-import { Calendar, Home, Inbox, Search, Settings } from "lucide-react";
+import {
+  Calendar,
+  Home,
+  ChartNoAxesColumn,
+  Search,
+  Settings,
+} from "lucide-react";
 
 import {
   Sidebar,
@@ -19,13 +25,13 @@ import { redirect } from "next/navigation";
 const items = [
   {
     title: "Home",
-    url: "#",
+    url: "/dashboard",
     icon: Home,
   },
   {
-    title: "Inbox",
-    url: "#",
-    icon: Inbox,
+    title: "Expenses",
+    url: "/dashboard/expenses",
+    icon: ChartNoAxesColumn,
   },
   {
     title: "Calendar",
