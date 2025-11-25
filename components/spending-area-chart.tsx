@@ -64,10 +64,10 @@ export function SpendingAreaChart({ expenses }) {
         return diff <= days;
       })
       .map((item) => ({
-        date: parseDate(item.booking_date),
+        date: parseDate(item.booking_date)?.toISOString(), // <--- here
         amount: Math.abs(item.amount),
       }))
-      .sort((a, b) => a.date.getTime() - b.date.getTime());
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }, [range, expenses]);
 
   return (

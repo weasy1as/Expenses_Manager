@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 import { useRouter } from "next/navigation";
 import { uploadExpenses } from "@/lib/actions";
+import { toast } from "sonner";
 
 interface Expense {
   date: string;
@@ -70,9 +71,23 @@ export function AddExpenseForm({ userId }: { userId: string | undefined }) {
 
       setExpenses([]);
       setFile(null);
-      router.refresh(); // optional: refresh dashboard data
+      toast.success("Expenses have been uploaded", {
+        action: {
+          label: "Close",
+          onClick: () => console.log("Toast closed"),
+        },
+        position: "top-center",
+      });
     } catch (error: any) {
-      setMessage(error?.message || "Error uploading expenses");
+      toast.error("Upload failed", {
+        description:
+          error?.message || "An error occurred while uploading expenses.",
+        action: {
+          label: "Close",
+          onClick: () => console.log("Toast closed"),
+        },
+        position: "top-center",
+      });
     } finally {
       setLoading(false);
     }
@@ -93,10 +108,6 @@ export function AddExpenseForm({ userId }: { userId: string | undefined }) {
         <Button onClick={handleUpload} disabled={!file || loading}>
           {loading ? "Uploading..." : "Upload"}
         </Button>
-
-        {message && (
-          <p className="mt-2 text-sm text-muted-foreground">{message}</p>
-        )}
 
         {expenses.length > 0 && (
           <div className="mt-4">

@@ -42,21 +42,64 @@ export async function uploadExpenses(file: File, userId: string) {
 
     return null;
   };
+  const parseExcelNumber = (val: any) => {
+    if (val === null || val === undefined || val === "") return 0;
 
-  const parseNumber = (val: any) => {
-    if (!val) return 0;
-    return parseFloat(String(val).replace(",", "."));
+    // If it's already a number, check if it's likely scaled incorrectly (like 32981 for 329.81)
+    if (typeof val === "number") {
+      // Heuristic: if > 1000 and no decimal in string, assume comma decimal issue
+      if (val > 1000) return val / 100;
+      return val;
+    }
+
+    // If it's a string
+    if (typeof val === "string") {
+      // Remove spaces
+      const str = val.trim();
+      // Remove thousand separators (dots) and replace comma with dot
+      return parseFloat(str.replace(/\./g, "").replace(",", "."));
+    }
+
+    return 0;
+  };
+
+  const parseAmount = (val: any) => {
+    if (val === null || val === undefined || val === "") return 0;
+
+    if (typeof val === "number") {
+      // If number is big, assume missing decimal (Excel issue)
+      if (Math.abs(val) > 1000) {
+        return val / 100;
+      }
+      return val;
+    }
+
+    if (typeof val === "string") {
+      const str = val.trim();
+      // Remove thousand separators (dots) and replace comma with dot
+      return parseFloat(str.replace(/\./g, "").replace(",", "."));
+    }
+
+    return 0;
+  };
+  const parseBalance = (val: any) => {
+    if (val === null || val === undefined || val === "") return 0;
+    if (typeof val === "number") return val;
+    if (typeof val === "string") {
+      return parseFloat(val.replace(/\./g, "").replace(",", "."));
+    }
+    return 0;
   };
 
   const expenses = rows.map((row) => ({
     user_id: userId,
     booking_date: parseDate(row["Bogføringsdato"]),
-    amount: parseNumber(row["Beløb"]),
+    amount: parseAmount(row["Beløb"]),
     sender: row["Afsender"] || "",
     receiver: row["Modtager"] || "",
     name: row["Navn"] || "",
     description: row["Beskrivelse"] || "",
-    balance: parseNumber(row["Saldo"]),
+    balance: parseExcelNumber(row["Saldo"]),
     currency: row["Valuta"] || "DKK",
     reconciled: row["Afstemt"]?.toString().toLowerCase() === "ja",
   }));

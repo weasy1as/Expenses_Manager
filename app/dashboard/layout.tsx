@@ -1,6 +1,7 @@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 
 import { AppSidebar } from "@/components/app-sidebar";
+import { Toaster } from "@/components/ui/sonner";
 export default function DashboardLayout({
   children,
 }: {
@@ -12,6 +13,7 @@ export default function DashboardLayout({
         <AppSidebar />
         <main className="flex-1 p-6">{children}</main>
       </SidebarProvider>
+      <Toaster />
     </div>
   );
 }
