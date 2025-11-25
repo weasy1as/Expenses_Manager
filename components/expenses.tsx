@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Table,
   TableBody,
@@ -10,58 +12,24 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
-const invoices = [
-  {
-    date: "20-11-2025",
-    amount: -5,
-    name: "REMA1000 ODENSE",
-    description: "REMA1000 ODENSE",
-    balance: "17,09",
-    currency: "DKK",
-    reconciled: false,
-  },
-  {
-    date: "20-11-2025",
-    amount: -329.81,
-    name: "REMA1000 ODENSE",
-    description: "REMA1000 ODENSE",
-    balance: "22,09",
-    currency: "DKK",
-    reconciled: false,
-  },
+export interface Expense {
+  id: string;
+  booking_date: string; // YYYY-MM-DD string
+  amount: number;
+  name: string;
+  description: string;
+  balance: number;
+  currency: string;
+  reconciled: boolean;
+}
 
-  {
-    date: "20-11-2025",
-    amount: -5,
-    name: "REMA1000 ODENSE",
-    description: "REMA1000 ODENSE",
-    balance: "17,09",
-    currency: "DKK",
-    reconciled: false,
-  },
-  {
-    date: "20-11-2025",
-    amount: -5,
-    name: "REMA1000 ODENSE",
-    description: "REMA1000 ODENSE",
-    balance: "17,09",
-    currency: "DKK",
-    reconciled: false,
-  },
-  {
-    date: "20-11-2025",
-    amount: -5,
-    name: "REMA1000 ODENSE",
-    description: "REMA1000 ODENSE",
-    balance: "17,09",
-    currency: "DKK",
-    reconciled: false,
-  },
-];
+interface ExpensesProps {
+  expenses: Expense[];
+}
 
-const Expenses = () => {
+const Expenses = ({ expenses }: ExpensesProps) => {
   return (
-    <Card className="w-full overflow-x-auto">
+    <Card className="w-full overflow-y-scroll max-h-[700px]">
       <CardHeader>
         <CardTitle>Recent Transactions</CardTitle>
       </CardHeader>
@@ -82,12 +50,12 @@ const Expenses = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {invoices.map((t, index) => (
+            {expenses.map((t, index) => (
               <TableRow
-                key={index}
+                key={t.id}
                 className={index % 2 === 0 ? "bg-muted/10" : "bg-background"}
               >
-                <TableCell>{t.date}</TableCell>
+                <TableCell>{t.booking_date}</TableCell>
                 <TableCell
                   className={
                     t.amount < 0 ? "text-destructive" : "text-green-600"
@@ -112,5 +80,4 @@ const Expenses = () => {
     </Card>
   );
 };
-
 export default Expenses;

@@ -3,58 +3,140 @@
 import { createClient } from "@/lib/server";
 import * as XLSX from "xlsx";
 
-export async function uploadExpenses(file: File, userId: string | undefined) {
+export async function uploadExpenses(file: File, userId: string) {
   if (!file) throw new Error("No file provided");
   if (!userId) throw new Error("User not authenticated");
 
   // Read file
-  const fileData = await file.arrayBuffer();
+  const buffer = await file.arrayBuffer();
+  const workbook = XLSX.read(buffer, { type: "array" });
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  const rows: any[] = XLSX.utils.sheet_to_json(sheet, { defval: "" });
 
-  // Parse Excel
-  const workbook = XLSX.read(fileData, { type: "array" });
-  const sheetName = workbook.SheetNames[0];
-  const worksheet = workbook.Sheets[sheetName];
+  // Convert DD-MM-YYYY → JS Date
+  const parseDate = (raw: any) => {
+    if (!raw) return null;
 
-  const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+    // Case 1: Excel gives a JS Date object
+    if (raw instanceof Date) return raw;
 
-  // Map to DB schema, ignoring 'Afsender' and 'Modtager'
-  const expenses = jsonData.map((row) => {
-    // Convert string numbers with comma to float
-    const parseNumber = (val: string | number) => {
-      if (typeof val === "number") return val;
-      if (typeof val === "string") return parseFloat(val.replace(",", "."));
-      return 0;
-    };
+    // Case 2: Excel numeric date code (e.g. 45678)
+    if (typeof raw === "number") {
+      return XLSX.SSF.parse_date_code(raw)
+        ? new Date(
+            XLSX.SSF.parse_date_code(raw).y,
+            XLSX.SSF.parse_date_code(raw).m - 1,
+            XLSX.SSF.parse_date_code(raw).d
+          )
+        : null;
+    }
 
-    return {
-      user_id: userId,
-      booking_date: row["Bogføringsdato"]
-        ? new Date(row["Bogføringsdato"])
-        : null,
-      amount: row["Beløb"] ? parseNumber(row["Beløb"]) : 0,
-      name: row["Navn"] || "",
-      description: row["Beskrivelse"] || "",
-      balance: row["Saldo"] ? parseNumber(row["Saldo"]) : 0,
-      currency: row["Valuta"] || "DKK",
-      reconciled:
-        row["Afstemt"]?.toString().toLowerCase() === "ja" ? true : false,
-    };
-  });
+    // Case 3: String date in DD-MM-YYYY
+    if (typeof raw === "string") {
+      const parts = raw.split("-");
+      if (parts.length === 3) {
+        const [d, m, y] = parts;
+        return new Date(`${y}-${m}-${d}`);
+      }
+    }
 
-  // Filter invalid rows
-  const validExpenses = expenses.filter(
-    (e) => e.booking_date && !isNaN(e.amount)
-  );
+    return null;
+  };
 
-  if (validExpenses.length === 0) {
-    throw new Error("No valid rows found in the Excel file");
+  const parseNumber = (val: any) => {
+    if (!val) return 0;
+    return parseFloat(String(val).replace(",", "."));
+  };
+
+  const expenses = rows.map((row) => ({
+    user_id: userId,
+    booking_date: parseDate(row["Bogføringsdato"]),
+    amount: parseNumber(row["Beløb"]),
+    sender: row["Afsender"] || "",
+    receiver: row["Modtager"] || "",
+    name: row["Navn"] || "",
+    description: row["Beskrivelse"] || "",
+    balance: parseNumber(row["Saldo"]),
+    currency: row["Valuta"] || "DKK",
+    reconciled: row["Afstemt"]?.toString().toLowerCase() === "ja",
+  }));
+
+  // Filter out invalid rows (missing date)
+  const valid = expenses.filter((e) => e.booking_date !== null);
+
+  if (valid.length === 0) {
+    throw new Error("No valid expense rows found (missing booking dates)");
   }
 
-  // Insert into Supabase
   const supabase = await createClient();
-  const { data, error } = await supabase.from("expenses").insert(validExpenses);
+  const { data, error } = await supabase.from("expenses").insert(valid);
 
   if (error) throw error;
 
   return data;
+}
+
+export async function getExpenses(userId: string) {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("expenses")
+    .select("*")
+    .eq("user_id", userId)
+    .order("booking_date", { ascending: true });
+
+  if (error) {
+    console.error("Error loading expenses:", error);
+    return [];
+  }
+
+  return data;
+}
+
+export async function getDashboardStats(userId: string) {
+  if (!userId) throw new Error("User not authenticated");
+
+  const supabase = await createClient();
+
+  // Fetch expenses for the user
+  const { data: expenses, error } = await supabase
+    .from("expenses")
+    .select("*")
+    .eq("user_id", userId);
+
+  if (error) throw error;
+
+  // Compute stats
+  const totalSpentThisMonth = expenses
+    .filter((e) => {
+      const date = new Date(e.booking_date);
+      const now = new Date();
+      return (
+        date.getMonth() === now.getMonth() &&
+        date.getFullYear() === now.getFullYear()
+      );
+    })
+    .reduce((sum, e) => sum + e.amount, 0);
+
+  const numberOfTransactions = expenses.length;
+
+  const biggestExpense = expenses.reduce(
+    (max, e) => (e.amount < max.amount ? e : max),
+    { amount: 0 }
+  );
+
+  const merchantCounts: Record<string, number> = {};
+  expenses.forEach((e) => {
+    merchantCounts[e.name] = (merchantCounts[e.name] || 0) + 1;
+  });
+  const mostFrequentMerchant = Object.entries(merchantCounts).sort(
+    (a, b) => b[1] - a[1]
+  )[0];
+
+  return {
+    totalSpentThisMonth,
+    numberOfTransactions,
+    biggestExpense,
+    mostFrequentMerchant: mostFrequentMerchant ? mostFrequentMerchant[0] : "",
+  };
 }

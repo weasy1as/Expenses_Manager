@@ -27,57 +27,48 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 
-// ---- MOCK DATA (use your real expenses data here) ----
-const expenses = [
-  {
-    date: "20-11-2025",
-    amount: -5,
-    name: "REMA1000 ODENSE",
-    balance: 17.09,
-    currency: "DKK",
-  },
-  {
-    date: "19-11-2025",
-    amount: -329.81,
-    name: "REMA1000 ODENSE",
-    balance: 22.09,
-    currency: "DKK",
-  },
-  {
-    date: "18-11-2025",
-    amount: -48.5,
-    name: "7-Eleven",
-    balance: 351.2,
-    currency: "DKK",
-  },
-];
-
 // Converts DD-MM-YYYY to JS Date
-const parseDate = (d: string) => {
-  const [day, month, year] = d.split("-").map(Number);
-  return new Date(year, month - 1, day);
+const parseDate = (raw: string | Date | null) => {
+  if (!raw) return null;
+  if (raw instanceof Date) return raw;
+
+  // If it's a YYYY-MM-DD string, split and create a Date object
+  if (typeof raw === "string") {
+    const parts = raw.split("-");
+    if (parts.length === 3) {
+      const year = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1; // Month is 0-indexed
+      const day = parseInt(parts[2], 10);
+      return new Date(year, month, day);
+    }
+
+    // fallback
+    return new Date(raw);
+  }
+
+  return null;
 };
 
-export function SpendingAreaChart() {
+export function SpendingAreaChart({ expenses }) {
   const [range, setRange] = useState("30d");
 
   const filteredData = useMemo(() => {
     const now = new Date();
-
     const days = range === "7d" ? 7 : range === "30d" ? 30 : 90;
 
     return expenses
       .filter((item) => {
-        const date = parseDate(item.date);
+        const date = parseDate(item.booking_date);
+        if (!date) return false;
         const diff = (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24);
         return diff <= days;
       })
       .map((item) => ({
-        date: parseDate(item.date),
-        amount: Math.abs(item.amount), // Area charts look nicer with positive values
+        date: parseDate(item.booking_date),
+        amount: Math.abs(item.amount),
       }))
       .sort((a, b) => a.date.getTime() - b.date.getTime());
-  }, [range]);
+  }, [range, expenses]);
 
   return (
     <Card className="@container/card">
