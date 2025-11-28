@@ -3,6 +3,46 @@
 import { createClient } from "@/lib/server";
 import * as XLSX from "xlsx";
 
+export async function categorizeExpenseWithOpenAI(row: any) {
+  const text = `
+Name: ${row.Navn || ""}
+Description: ${row.Beskrivelse || ""}
+Amount: ${row.Beløb || 0}
+`;
+
+  const prompt = `
+You are a financial assistant. Given the following expense details, assign it to one of these categories: Grocery, Transport, Entertainment, Bills/Utilities, Subscriptions, Income, Transfer, Others.
+Return only the category name.
+
+Expense:
+${text}
+`;
+
+  const openaiRes = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: "gpt-3.5-turbo",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0,
+    }),
+  });
+
+  const data = await openaiRes.json();
+
+  const rawCategory = data?.choices?.[0]?.message?.content || "";
+  const category =
+    rawCategory
+      .replace(/^Category:\s*/i, "") // Remove "Category:" if present
+      .trim() || // Remove extra whitespace
+    "Others";
+
+  return category;
+}
+
 export async function uploadExpenses(file: File, userId: string) {
   if (!file) throw new Error("No file provided");
   if (!userId) throw new Error("User not authenticated");
@@ -43,18 +83,21 @@ export async function uploadExpenses(file: File, userId: string) {
     return null;
   };
 
-  const expenses = rows.map((row) => ({
-    user_id: userId,
-    booking_date: parseDate(row["Bogføringsdato"]),
-    amount: row["Beløb"] || 0,
-    sender: row["Afsender"] || "",
-    receiver: row["Modtager"] || "",
-    name: row["Navn"] || "",
-    description: row["Beskrivelse"] || "",
-    balance: row["Saldo"] || 0,
-    currency: row["Valuta"] || "DKK",
-    reconciled: row["Afstemt"]?.toString().toLowerCase() === "ja",
-  }));
+  const expenses = await Promise.all(
+    rows.map(async (row) => ({
+      user_id: userId,
+      booking_date: parseDate(row["Bogføringsdato"]),
+      amount: row["Beløb"] || 0,
+      sender: row["Afsender"] || "",
+      receiver: row["Modtager"] || "",
+      name: row["Navn"] || "",
+      description: row["Beskrivelse"] || "",
+      balance: row["Saldo"] || 0,
+      currency: row["Valuta"] || "DKK",
+      reconciled: row["Afstemt"]?.toString().toLowerCase() === "ja",
+      category: await categorizeExpenseWithOpenAI(row),
+    }))
+  );
 
   // Filter out invalid rows (missing date)
   const valid = expenses.filter((e) => e.booking_date !== null);
@@ -134,4 +177,35 @@ export async function getDashboardStats(userId: string) {
     biggestExpense,
     mostFrequentMerchant: mostFrequentMerchant ? mostFrequentMerchant[0] : "",
   };
+}
+
+export async function getExpensesByCategory(userId: string) {
+  if (!userId) throw new Error("User not authenticated");
+
+  const supabase = await createClient();
+
+  // Fetch user's expenses
+  const { data, error } = await supabase
+    .from("expenses")
+    .select("category, amount")
+    .eq("user_id", userId);
+
+  if (error) throw error;
+
+  // Aggregate totals per category
+  const categoryTotals: Record<string, number> = {};
+  data.forEach((row) => {
+    const cat = row.category || "Others";
+    categoryTotals[cat] = (categoryTotals[cat] || 0) + row.amount;
+  });
+
+  // Convert to array for easier rendering
+  const result = Object.entries(categoryTotals).map(([category, total]) => ({
+    category,
+    total,
+  }));
+
+  console.log(result);
+
+  return result;
 }
