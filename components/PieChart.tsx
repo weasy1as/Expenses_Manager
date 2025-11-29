@@ -41,7 +41,7 @@ export function ChartPieLabelList({
 }: PieLabelListProps) {
   const chartData = data.map((d) => ({ ...d, totalAbs: Math.abs(d.total) }));
   return (
-    <Card className="flex flex-col">
+    <Card className="flex flex-col h-full ">
       <CardHeader className="items-center pb-0">
         <CardTitle>{title}</CardTitle>
         {description && <CardDescription>{description}</CardDescription>}
@@ -67,14 +67,6 @@ export function ChartPieLabelList({
           </PieChart>
         </ChartContainer>
       </CardContent>
-      <CardFooter className="flex-col gap-2 text-sm">
-        <div className="flex items-center gap-2 leading-none font-medium">
-          Trending up by 5.2% this month <TrendingUp className="h-4 w-4" />
-        </div>
-        <div className="text-muted-foreground leading-none">
-          Showing total per category
-        </div>
-      </CardFooter>
     </Card>
   );
 }

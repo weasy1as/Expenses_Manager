@@ -1,3 +1,26 @@
+"use client";
+
+export function useCountUp(target: number, duration: number = 1000) {
+  const [value, setValue] = useState(0);
+
+  useEffect(() => {
+    let start: number | null = null;
+
+    function step(timestamp: number) {
+      if (!start) start = timestamp;
+      const progress = timestamp - start;
+      const current = Math.min(target, (progress / duration) * target);
+      setValue(current);
+      if (progress < duration) {
+        requestAnimationFrame(step);
+      }
+    }
+
+    requestAnimationFrame(step);
+  }, [target, duration]);
+
+  return value;
+}
 import { IconTrendingDown, IconTrendingUp } from "@tabler/icons-react";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -8,6 +31,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { useEffect, useState } from "react";
 
 interface SectionCardsProps {
   totalSpentThisMonth: number;
@@ -22,19 +46,22 @@ export function SectionCards({
   biggestExpense,
   mostFrequentMerchant,
 }: SectionCardsProps) {
+  const animatedTotalSpent = useCountUp(totalSpentThisMonth);
+  const animatedTransactions = useCountUp(numberOfTransactions);
+  const animatedBiggestExpense = useCountUp(biggestExpense.amount);
+
   return (
     <div className="flex gap-3 w-full">
-      {/* Total Spent This Month */}
+      {/* Total Spent */}
       <Card className="w-full bg-gradient-to-b from-gray-50 to-white dark:from-gray-950 dark:to-gray-900">
         <CardHeader>
           <CardDescription>Total Spent (This Month)</CardDescription>
           <CardTitle className="text-3xl font-bold tabular-nums text-red-600">
-            {totalSpentThisMonth.toFixed(2)} DKK
+            {animatedTotalSpent.toFixed(2)} DKK
           </CardTitle>
           <CardAction>
             <Badge className="bg-red-100 text-red-700 border-red-200">
               <IconTrendingDown className="mr-1" />
-              {/* You could calculate % change here */}
               +5.1%
             </Badge>
           </CardAction>
@@ -46,7 +73,7 @@ export function SectionCards({
         <CardHeader>
           <CardDescription>Transactions</CardDescription>
           <CardTitle className="text-3xl font-bold tabular-nums text-green-600">
-            {numberOfTransactions}
+            {Math.floor(animatedTransactions)}
           </CardTitle>
           <CardAction>
             <Badge className="bg-green-100 text-green-700 border-green-200">
@@ -62,7 +89,7 @@ export function SectionCards({
         <CardHeader>
           <CardDescription>Biggest Expense</CardDescription>
           <CardTitle className="text-3xl font-bold tabular-nums text-red-600">
-            {biggestExpense.amount.toFixed(2)} DKK
+            {animatedBiggestExpense.toFixed(2)} DKK
           </CardTitle>
           <CardFooter className="flex-col items-start gap-1.5 text-sm">
             <div className="font-medium text-foreground">

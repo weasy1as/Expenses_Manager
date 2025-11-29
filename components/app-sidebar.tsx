@@ -2,7 +2,7 @@ import {
   FileUp,
   Home,
   ChartNoAxesColumn,
-  Search,
+  ChartPie,
   Settings,
 } from "lucide-react";
 
@@ -34,15 +34,16 @@ const items = [
     icon: ChartNoAxesColumn,
   },
   {
+    title: "Categories",
+    url: "/dashboard/categories",
+    icon: ChartPie,
+  },
+  {
     title: "Upload Expenses",
     url: "/dashboard/upload",
     icon: FileUp,
   },
-  {
-    title: "Search",
-    url: "#",
-    icon: Search,
-  },
+
   {
     title: "Settings",
     url: "#",

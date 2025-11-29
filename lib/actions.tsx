@@ -11,7 +11,7 @@ Amount: ${row.Beløb || 0}
 `;
 
   const prompt = `
-You are a financial assistant. Given the following expense details, assign it to one of these categories: Grocery, Transport, Entertainment, Bills/Utilities, Subscriptions, Income, Transfer, Others.
+You are a financial assistant. Given the following expense details, assign it to one of these categories: Grocery, Transport, Entertainment, Bills/Utilities, Subscriptions, Income, Transfer,savings, Others.
 Return only the category name.
 
 Expense:
@@ -154,14 +154,19 @@ export async function getDashboardStats(userId: string) {
         date.getFullYear() === now.getFullYear()
       );
     })
-    .reduce((sum, e) => sum + e.amount, 0);
+    .reduce((sum, e) => sum + Math.abs(e.amount), 0);
 
   const numberOfTransactions = expenses.length;
 
-  const biggestExpense = expenses.reduce(
+  const biggestExpenseRaw = expenses.reduce(
     (max, e) => (e.amount < max.amount ? e : max),
     { amount: 0 }
   );
+
+  const biggestExpense = {
+    ...biggestExpenseRaw,
+    amount: Math.abs(biggestExpenseRaw.amount), // convert to positive
+  };
 
   const merchantCounts: Record<string, number> = {};
   expenses.forEach((e) => {

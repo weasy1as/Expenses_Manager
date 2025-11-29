@@ -109,7 +109,7 @@ export function SpendingAreaChart({ expenses }) {
           className="h-[250px] w-full"
           config={{
             amount: {
-              label: "Amount",
+              label: "DKK",
               color: "hsl(var(--primary))",
             },
           }}
